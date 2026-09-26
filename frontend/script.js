@@ -255,6 +255,57 @@ async function loadMonitoring() {
     }
 }
 
+async function simulateDegradation() {
+    const button = document.getElementById("degradationButton");
+    const message = document.getElementById("degradationMessage");
+
+    button.disabled = true;
+    button.textContent = "Retraining in progress...";
+    message.textContent = "⚠ Simulating performance degradation...";
+
+    try {
+        const response = await fetch(`${API_URL}/simulate-degradation`, {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+    message.textContent =
+        "✓ Degradation detected and automatic retraining completed.";
+
+    await loadActiveModel();
+    await loadMonitoring();
+
+} else {
+
+    console.error("Backend error:", data);
+
+    message.textContent =
+        "✕ " + data.message;
+
+    if (data.output) {
+        console.error("Output:", data.output);
+    }
+
+    if (data.controller_output) {
+        console.error(
+            "Controller Output:",
+            data.controller_output
+        );
+    }
+}
+
+    } catch (error) {
+        console.error("Degradation simulation error:", error);
+        message.textContent =
+            "✕ Unable to run degradation simulation.";
+    }
+
+    button.disabled = false;
+    button.textContent = "⚠ Simulate Model Degradation";
+}
+
 
 // Load monitoring data when page opens
 

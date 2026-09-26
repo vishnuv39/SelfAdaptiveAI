@@ -21,9 +21,37 @@
             <p>Predictive Maintenance System</p>
         </div>
 
-        <div class="model-box">
-            <span>Active Model</span>
-            <strong id="activeModel">Loading...</strong>
+
+        <div class="header-actions">
+
+            <!-- Active Model -->
+
+            <div class="model-box">
+
+                <span>Active Model</span>
+
+                <strong id="activeModel">
+                    Loading...
+                </strong>
+
+            </div>
+
+
+            <!-- Degradation Demonstration -->
+
+            <div class="header-degradation">
+
+                <button
+                    id="degradationButton"
+                    onclick="simulateDegradation()"
+                >
+                    ⚠ Simulate Model Degradation
+                </button>
+
+                <p id="degradationMessage"></p>
+
+            </div>
+
         </div>
 
     </header>
@@ -37,15 +65,27 @@
 
             <h2>Machine Prediction</h2>
 
+
             <div class="form-grid">
 
                 <div class="input-group">
+
                     <label>Machine Type</label>
 
                     <select id="type">
-                        <option value="L">L</option>
-                        <option value="M" selected>M</option>
-                        <option value="H">H</option>
+
+                        <option value="L">
+                            L
+                        </option>
+
+                        <option value="M" selected>
+                            M
+                        </option>
+
+                        <option value="H">
+                            H
+                        </option>
+
                     </select>
 
                 </div>
@@ -137,6 +177,7 @@
 
             <h2>Prediction Result</h2>
 
+
             <div id="predictionResult">
 
                 <p class="placeholder">
@@ -148,27 +189,34 @@
         </section>
 
 
-        <!-- Feedback -->
+        <!-- Actual Machine Outcome / Feedback -->
 
         <section class="card">
 
             <h2>Actual Machine Outcome</h2>
 
+
             <p class="description">
+
                 After the actual machine outcome is known,
                 submit it as feedback.
+
             </p>
 
 
             <div class="feedback-buttons">
 
                 <button onclick="submitFeedback(0)">
+
                     Machine Worked Normally
+
                 </button>
 
 
                 <button onclick="submitFeedback(1)">
+
                     Machine Actually Failed
+
                 </button>
 
             </div>
@@ -188,9 +236,14 @@
 
             <div class="monitor-grid">
 
+
+                <!-- Active Model -->
+
                 <div class="monitor-item">
 
-                    <span>Active Model</span>
+                    <span>
+                        Active Model
+                    </span>
 
                     <strong id="monitorModel">
                         Loading...
@@ -199,9 +252,13 @@
                 </div>
 
 
+                <!-- Accuracy -->
+
                 <div class="monitor-item">
 
-                    <span>Accuracy</span>
+                    <span>
+                        Accuracy
+                    </span>
 
                     <strong id="monitorAccuracy">
                         Loading...
@@ -210,9 +267,13 @@
                 </div>
 
 
+                <!-- Precision -->
+
                 <div class="monitor-item">
 
-                    <span>Precision</span>
+                    <span>
+                        Precision
+                    </span>
 
                     <strong id="monitorPrecision">
                         Loading...
@@ -221,9 +282,13 @@
                 </div>
 
 
+                <!-- Recall -->
+
                 <div class="monitor-item">
 
-                    <span>Recall</span>
+                    <span>
+                        Recall
+                    </span>
 
                     <strong id="monitorRecall">
                         Loading...
@@ -232,9 +297,13 @@
                 </div>
 
 
+                <!-- F1 Score -->
+
                 <div class="monitor-item">
 
-                    <span>F1 Score</span>
+                    <span>
+                        F1 Score
+                    </span>
 
                     <strong id="monitorF1">
                         Loading...
@@ -243,9 +312,13 @@
                 </div>
 
 
+                <!-- System Health -->
+
                 <div class="monitor-item">
 
-                    <span>System Health</span>
+                    <span>
+                        System Health
+                    </span>
 
                     <strong id="monitorHealth">
                         Loading...
@@ -254,9 +327,13 @@
                 </div>
 
 
+                <!-- Retraining Status -->
+
                 <div class="monitor-item">
 
-                    <span>Retraining Status</span>
+                    <span>
+                        Retraining Status
+                    </span>
 
                     <strong id="monitorRetraining">
                         Loading...

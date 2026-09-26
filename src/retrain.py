@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import joblib
 import mlflow
@@ -18,7 +19,49 @@ from sklearn.metrics import (
 
 DATA_FILE = "data/ai4i2020.csv"
 FEEDBACK_FILE = "data/feedback.csv"
-MODEL_FILE = "models/model_v2.pkl"
+
+
+# --------------------------------
+# Get next model version
+# --------------------------------
+
+def get_next_model_version():
+
+    model_files = [
+        file for file in os.listdir("models")
+        if file.startswith("model_v")
+        and file.endswith(".pkl")
+    ]
+
+    versions = []
+
+    for file in model_files:
+
+        try:
+            version = int(
+                file.replace("model_v", "").replace(".pkl", "")
+            )
+
+            versions.append(version)
+
+        except ValueError:
+            pass
+
+    if not versions:
+        return 1
+
+    return max(versions) + 1
+
+
+# --------------------------------
+# Determine new model version
+# --------------------------------
+
+next_version = get_next_model_version()
+
+MODEL_VERSION = f"V{next_version}"
+
+MODEL_FILE = f"models/model_v{next_version}.pkl"
 
 
 # --------------------------------
@@ -107,7 +150,7 @@ preprocessor = ColumnTransformer(
 
 
 # --------------------------------
-# 6. Model V2
+# 6. New Model Training
 # --------------------------------
 
 model = RandomForestClassifier(
@@ -142,7 +185,10 @@ with mlflow.start_run() as run:
     y_pred = pipeline.predict(X_test)
 
     # Metrics
-    accuracy = accuracy_score(y_test, y_pred)
+    accuracy = accuracy_score(
+        y_test,
+        y_pred
+    )
 
     precision = precision_score(
         y_test,
@@ -164,7 +210,7 @@ with mlflow.start_run() as run:
 
 
     print("\n--------------------------------")
-    print("       MODEL V2 TRAINING")
+    print(f"       MODEL {MODEL_VERSION} TRAINING")
     print("--------------------------------")
 
     print(f"Accuracy  : {accuracy:.4f}")
@@ -179,7 +225,7 @@ with mlflow.start_run() as run:
 
     mlflow.log_param(
         "model_version",
-        "V2"
+        MODEL_VERSION
     )
 
     mlflow.log_param(
@@ -244,7 +290,7 @@ with mlflow.start_run() as run:
 
     mlflow.sklearn.log_model(
         pipeline,
-        name="predictive_maintenance_model_v2",
+        name=f"predictive_maintenance_model_{MODEL_VERSION.lower()}",
         skops_trusted_types=[
             "sklearn.tree._tree.Tree"
         ]
@@ -255,7 +301,7 @@ with mlflow.start_run() as run:
 
 
 # --------------------------------
-# 8. Save Model V2
+# 8. Save New Model
 # --------------------------------
 
 joblib.dump(
@@ -263,4 +309,7 @@ joblib.dump(
     MODEL_FILE
 )
 
-print("\nModel V2 saved to:", MODEL_FILE)
+print(
+    f"\nModel {MODEL_VERSION} saved to:",
+    MODEL_FILE
+)

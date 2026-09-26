@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import joblib
 import subprocess
@@ -14,13 +15,51 @@ from sklearn.model_selection import train_test_split
 
 
 FEEDBACK_FILE = "data/feedback.csv"
-
-MODEL_V1 = "models/model_v1.pkl"
-MODEL_V2 = "models/model_v2.pkl"
-
 ACTIVE_MODEL_FILE = "models/active_model.txt"
 
 RECALL_THRESHOLD = 0.70
+
+
+# --------------------------------
+# Get active model
+# --------------------------------
+
+def get_active_model():
+
+    with open(ACTIVE_MODEL_FILE, "r") as file:
+        return file.read().strip()
+
+
+# --------------------------------
+# Get next model version
+# --------------------------------
+
+def get_next_model_version():
+
+    model_files = [
+        file for file in os.listdir("models")
+        if file.startswith("model_v")
+        and file.endswith(".pkl")
+    ]
+
+    versions = []
+
+    for file in model_files:
+
+        try:
+            version = int(
+                file.replace("model_v", "").replace(".pkl", "")
+            )
+
+            versions.append(version)
+
+        except ValueError:
+            pass
+
+    if not versions:
+        return 1
+
+    return max(versions) + 1
 
 
 # --------------------------------
@@ -32,14 +71,17 @@ df = pd.read_csv(FEEDBACK_FILE)
 prediction = df["prediction"]
 actual = df["actual"]
 
-current_model = df["model_version"].iloc[-1]
+current_model = get_active_model()
 
 
 # --------------------------------
 # 2. Monitor current performance
 # --------------------------------
 
-accuracy = accuracy_score(actual, prediction)
+accuracy = accuracy_score(
+    actual,
+    prediction
+)
 
 precision = precision_score(
     actual,
@@ -91,13 +133,37 @@ else:
     print("→ Starting automatic retraining...")
 
     # =================================
-    # 4. Run retraining automatically
+    # 4. Determine next model version
     # =================================
+
+    next_version = get_next_model_version()
+
+    candidate_model = f"V{next_version}"
+    candidate_file = f"models/model_v{next_version}.pkl"
+
+    print(f"\nCandidate Model : {candidate_model}")
+
+    # =================================
+    # 5. Run retraining automatically
+    # =================================
+
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+
+    env = os.environ.copy()
+
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
 
     result = subprocess.run(
         [sys.executable, "src/retrain.py"],
+        cwd=project_root,
         capture_output=True,
-        text=True
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env
     )
 
     print("\nRetraining Output")
@@ -111,15 +177,26 @@ else:
 
         selected_model = current_model
 
+    elif not os.path.exists(candidate_file):
+
+        print(
+            f"❌ Expected candidate model was not created: "
+            f"{candidate_file}"
+        )
+
+        selected_model = current_model
+
     else:
 
         print("✓ Retraining completed.")
 
         # =================================
-        # 5. Load dataset for evaluation
+        # 6. Load dataset for evaluation
         # =================================
 
-        data = pd.read_csv("data/ai4i2020.csv")
+        data = pd.read_csv(
+            "data/ai4i2020.csv"
+        )
 
         features = [
             "Type",
@@ -142,81 +219,133 @@ else:
         )
 
         # =================================
-        # 6. Load V1 and newly trained V2
+        # 7. Load active and candidate models
         # =================================
 
-        model_v1 = joblib.load(MODEL_V1)
-        model_v2 = joblib.load(MODEL_V2)
+        active_file = (
+            f"models/model_"
+            f"{current_model.lower()}.pkl"
+        )
 
-        pred_v1 = model_v1.predict(X_test)
-        pred_v2 = model_v2.predict(X_test)
+        candidate_file = (
+            f"models/model_"
+            f"{candidate_model.lower()}.pkl"
+        )
+
+        model_active = joblib.load(
+            active_file
+        )
+
+        model_candidate = joblib.load(
+            candidate_file
+        )
+
+        pred_active = model_active.predict(
+            X_test
+        )
+
+        pred_candidate = model_candidate.predict(
+            X_test
+        )
 
         # =================================
-        # 7. Evaluate V1
+        # 8. Evaluate active model
         # =================================
 
-        v1_recall = recall_score(
+        active_recall = recall_score(
             y_test,
-            pred_v1,
+            pred_active,
             zero_division=0
         )
 
-        v1_f1 = f1_score(
+        active_f1 = f1_score(
             y_test,
-            pred_v1,
+            pred_active,
             zero_division=0
         )
 
         # =================================
-        # 8. Evaluate V2
+        # 9. Evaluate candidate model
         # =================================
 
-        v2_recall = recall_score(
+        candidate_recall = recall_score(
             y_test,
-            pred_v2,
+            pred_candidate,
             zero_division=0
         )
 
-        v2_f1 = f1_score(
+        candidate_f1 = f1_score(
             y_test,
-            pred_v2,
+            pred_candidate,
             zero_division=0
         )
 
         print("\nModel Comparison")
         print("----------------")
-        print(f"V1 Recall : {v1_recall:.4f}")
-        print(f"V1 F1     : {v1_f1:.4f}")
-        print(f"V2 Recall : {v2_recall:.4f}")
-        print(f"V2 F1     : {v2_f1:.4f}")
+
+        print(
+            f"{current_model} Recall : "
+            f"{active_recall:.4f}"
+        )
+
+        print(
+            f"{current_model} F1     : "
+            f"{active_f1:.4f}"
+        )
+
+        print(
+            f"{candidate_model} Recall : "
+            f"{candidate_recall:.4f}"
+        )
+
+        print(
+            f"{candidate_model} F1     : "
+            f"{candidate_f1:.4f}"
+        )
 
         # =================================
-        # 9. Select model
+        # 10. Select model
         # =================================
 
         if (
-            v2_recall >= RECALL_THRESHOLD
-            and v2_f1 >= v1_f1
+            candidate_recall >= RECALL_THRESHOLD
+            and candidate_f1 >= active_f1
         ):
 
-            selected_model = "V2"
+            selected_model = candidate_model
 
-            print("\n✓ V2 passed deployment criteria.")
-            print("→ V2 activated.")
+            print(
+                f"\n✓ {candidate_model} "
+                f"passed deployment criteria."
+            )
+
+            print(
+                f"→ {candidate_model} activated."
+            )
 
         else:
 
-            selected_model = "V1"
+            selected_model = current_model
 
-            print("\n✗ V2 failed deployment criteria.")
-            print("→ V1 remains active.")
+            print(
+                f"\n✗ {candidate_model} "
+                f"failed deployment criteria."
+            )
+
+            print(
+                f"→ {current_model} remains active."
+            )
 
 
 # =================================
-# 10. Save active model
+# 11. Save active model
 # =================================
 
-with open(ACTIVE_MODEL_FILE, "w") as file:
+with open(
+    ACTIVE_MODEL_FILE,
+    "w"
+) as file:
+
     file.write(selected_model)
 
 

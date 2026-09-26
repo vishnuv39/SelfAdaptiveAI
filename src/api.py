@@ -5,6 +5,8 @@ from datetime import datetime
 import os
 import joblib
 import pandas as pd
+import subprocess
+import sys
 
 app = FastAPI(
     title="Self-Adaptive Predictive Maintenance API",
@@ -200,3 +202,65 @@ def get_monitoring_data():
         "health": health,
         "retraining": retraining
     }
+@app.post("/simulate-degradation")
+def simulate_degradation():
+
+    try:
+        project_root = os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))
+        )
+
+        # Force child Python processes to use UTF-8
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+
+        # Step 1: Simulate model degradation
+        degradation = subprocess.run(
+            [sys.executable, "src/simulate_degradation.py"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env
+        )
+
+        if degradation.returncode != 0:
+            return {
+                "success": False,
+                "message": "Degradation simulation failed.",
+                "output": degradation.stderr
+            }
+
+        # Step 2: Run adaptive controller
+        controller = subprocess.run(
+            [sys.executable, "src/adaptive_controller.py"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env
+        )
+
+        if controller.returncode != 0:
+            return {
+                "success": False,
+                "message": "Adaptive controller failed.",
+                "output": controller.stderr,
+                "controller_output": controller.stdout
+            }
+
+        return {
+            "success": True,
+            "message": "Model degradation simulated and adaptive retraining completed.",
+            "output": controller.stdout
+        }
+
+    except Exception as e:
+
+        return {
+            "success": False,
+            "message": str(e)
+        }
